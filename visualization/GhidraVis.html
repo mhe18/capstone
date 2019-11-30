@@ -1,1 +1,166 @@
 
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="Author" content="Jiaming Zhou">
+  <meta name="Description" content="Ghidra visualization project">
+  <title>GhidraVis</title>
+  <style type="text/css">
+        html, body {
+            font: 12pt arial;
+        }
+
+        #viz {
+            width: 800px;
+            height: 550px;
+            border: 1px solid lightgray;
+            font: 22pt arial;
+        }
+
+    </style>
+    <!-- FIXME: load from dist -->
+    <script type="text/javascript" src="../dist/neovis.js"></script>
+    <script
+            src="https://code.jquery.com/jquery-3.2.1.min.js"
+            integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+            crossorigin="anonymous"></script>
+    <script type="text/javascript">
+		var viz;
+		function draw() {
+			var initial_cypher = "MATCH (n)-[r:CALLS]->(m) RETURN n,r,m";
+			//console.log(initial_cypher);
+			var config = {
+				container_id: "viz",
+				server_url: "bolt://localhost:7687",
+				server_user: "neo4j",
+				server_password: "123123",
+				labels: {
+					//"Character": "name",
+					"Function": {
+						"caption": "name",
+						"size": "pagerank",
+						"community": "community"
+					},
+					"LibFunction": {
+						"caption": "name",
+						"size": "pagerank",
+						"community": "community"
+					}
+				},
+				relationships: {
+					"CALLS": {
+						"thickness": "weight",
+						"caption": false
+					}
+				},
+				initial_cypher: initial_cypher,
+				arrows: true
+			};
+
+			viz = new NeoVis.default(config);
+			viz.render();
+			//console.log(viz);
+		}	
+    </script>
+ </head>
+ <body onload="draw()">
+  <table>
+  	<tr>
+  		<td>
+			<div id="viz"></div>
+  		</td>
+  		<td>
+  			<h4>Show Complete Graph</h4>
+  			<input type="submit" value="Reload graph" id="reload">
+			<input type="submit" value="Stabilize" id="stabilize">
+			<br>
+			<br>
+			<h4>Show Sub-graph</h4>
+			Selected functions: <br>
+			<textarea rows="4" cols=50 id="funcName"></textarea><br>
+			<input type="submit" value="Add selected function to list" id="addFunc"><br>
+			Show selected functions as: <br>
+			<input type="checkbox" name="caller" id="caller">caller<br>
+			<input type="checkbox" name="callee" id="callee">callee<br>
+			<input type="submit" value="Show sub-graph" id="callRel">
+			<input type="submit" value="Stabilize" id="stabilize2">
+			<input type="hidden" value="" id="selectedFuncName">
+  		</td>
+  	</tr>
+  </table>
+  <script>
+	$("#reload").click(function() {
+
+		var cypher = "MATCH (n)-[r:CALLS]->(m) RETURN n,r,m";
+
+		if (cypher.length > 3) {
+			viz.renderWithCypher(cypher);
+		} else {
+			//console.log("reload");
+			viz.reload();
+
+		}
+
+	});
+
+	$("#stabilize").click(function() {
+		viz.stabilize();
+	});
+	$("#stabilize2").click(function() {
+		viz.stabilize();
+	});
+	$("#callRel").click(function() {
+		//Neovis.reload();
+		//Neovis.renderWithCypher(statement);
+		var funcName =  document.getElementById("funcName").value;
+		var funcNames = document.getElementById("funcName").value.split(" ");
+		var where = "";
+		//var caller_part = `n.name="${funcNames[i]}"`;
+		//var callee_part = `m.name="${funcNames[i]}"`;
+		if (!document.getElementById("caller").checked && !document.getElementById("callee").checked){
+			alert("Please check call/called-by relationship");
+			return(0);
+		}
+		for(var i=0;i<funcNames.length;i++){
+			console.log(i);
+			if (document.getElementById("caller").checked)
+				where += `n.name="${funcNames[i]}"` + " OR ";
+			if (document.getElementById("callee").checked)
+				where += `m.name="${funcNames[i]}"` + " OR ";
+			
+		}
+		where = where.slice(0,-3);
+		//console.log(where);
+		var cypher = `MATCH (n)-[r:CALLS]->(m) WHERE ${where} RETURN n,r,m`;
+		if (cypher.length > 3) {
+			viz.renderWithCypher(cypher);
+		} else {
+			viz.reload();
+
+		}
+	});
+	$("#selectedFuncName").on("change", function() {
+		var selectedFuncs = document.getElementById("funcName").value;
+		var addFunc = document.getElementById("selectedFuncName").value;
+		if(selectedFuncs.length > 1){
+			selectedFuncs += (" " + addFunc);
+		}
+		else
+			selectedFuncs = addFunc;
+		document.getElementById("funcName").value = selectedFuncs;
+	})
+	$("#addFunc").click(function() {
+		var selectedFuncs = document.getElementById("funcName").value;
+		var addFunc = document.getElementById("selectedFuncName").value;
+		if(selectedFuncs.length > 1){
+			selectedFuncs += (" " + addFunc);
+		}
+		else
+			selectedFuncs = addFunc;
+		document.getElementById("funcName").value = selectedFuncs;
+	})
+
+</script>
+ </body>
+</html>
