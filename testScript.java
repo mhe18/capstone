@@ -214,29 +214,31 @@ public class testScript extends GhidraScript {
 			 try {
 				monitor.checkCanceled();
 				monitor.incrementProgress(1);
+				Function current_function = newFunctions.next();
 		        SymbolIterator currentAllSymbols = currentProgram.getSymbolTable().getAllSymbols(true);
 		        while(currentAllSymbols.hasNext()) {
+		        	Symbol current_symbol = currentAllSymbols.next();
 		        	ExternalLocation externalLocation;
-					if (currentAllSymbols.next().getAddress() == newFunctions.next().getEntryPoint()) {
+					if (current_symbol.getAddress() == current_function.getEntryPoint()) {
 		        		try {
 							externalLocation = currentExternalManager.addExtFunction(externalLibraryName,
-									newFunctions.next().getName(),
-									currentAllSymbols.next().getAddress(),
+									current_function.getName(),
+									current_symbol.getAddress(),
 							        SourceType.USER_DEFINED);
 							Function externalFunction = externalLocation.getFunction();
-							 String newCallingConvention = newFunctions.next().getCallingConventionName();
-			                    Parameter newReturnValue = newFunctions.next().getReturn();
+							 String newCallingConvention = current_function.getCallingConventionName();
+			                    Parameter newReturnValue = current_function.getReturn();
 			                    FunctionUpdateType newUpdateType = Function.FunctionUpdateType.DYNAMIC_STORAGE_FORMAL_PARAMS;
 			                    SourceType newSource = SourceType.USER_DEFINED;
-			                    Parameter[] newParameters = newFunctions.next().getParameters();
+			                    Parameter[] newParameters = current_function.getParameters();
 			                    externalFunction.updateFunction(newCallingConvention, newReturnValue,
 		                                newUpdateType, true, newSource, newParameters);
 			                    ReferenceManager currentReferenceManager = currentProgram.getReferenceManager();
-								for (Reference reference: currentReferenceManager.getReferencesTo(currentAllSymbols.next().getAddress())) {
+								for (Reference reference: currentReferenceManager.getReferencesTo(current_symbol.getAddress())) {
 									currentReferenceManager.addExternalReference(reference.getFromAddress(),
                                             externalLibraryName,
-                                            newFunctions.next().getName(),
-                                            newFunctions.next().getEntryPoint(),
+                                            current_function.getName(),
+                                            current_function.getEntryPoint(),
                                             SourceType.USER_DEFINED,
                                             reference.getOperandIndex(),
                                             reference.getReferenceType());
